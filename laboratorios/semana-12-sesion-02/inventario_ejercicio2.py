@@ -47,7 +47,10 @@ class Recurso:
         raise NotImplementedError
 
     def rutas(self, tipo, inicio, fin, ruta):
-        raise NotImplementedError
+        resultado = []
+        for hijo in self.hijos:
+            resultado = resultado + hijo.rutas(tipo, inicio, fin, ruta + self.nombre + " / ")
+        return resultado
 
 
 class Reservable(Recurso):
@@ -59,15 +62,26 @@ class Reservable(Recurso):
     def reservar(self, id_reserva, estudiante, inicio, fin):
         self.calendario.reservar(id_reserva, estudiante, inicio, fin)
 
-    # TODO 1: buscar devuelve [self.nombre] si el tipo coincide y el
-    # calendario esta libre, o []. contar devuelve 1 si el tipo coincide,
-    # o 0.
+    def buscar(self, tipo, inicio, fin):
+        if self.tipo == tipo and self.calendario.esta_libre(inicio, fin):
+            return [self.nombre]
+        return []
 
-    # TODO 3 (hoja): encontrar devuelve self si el nombre coincide, o
-    # None.
+    def contar(self, tipo):
+        if self.tipo == tipo:
+            return 1
+        return 0
 
-    # TODO 4 (hoja): rutas devuelve [ruta + self.nombre] en los mismos
-    # casos en que buscar devuelve [self.nombre].
+
+    def encontrar(self, nombre):
+        if self.nombre == nombre:
+            return self
+        return None
+
+    def rutas(self, tipo, inicio, fin, ruta):
+        if len(self.buscar(tipo, inicio, fin)) > 0:
+            return [ruta + self.nombre]
+        return []
 
 
 class Grupo(Recurso):
@@ -78,15 +92,30 @@ class Grupo(Recurso):
     def agregar(self, hijo):
         self.hijos.append(hijo)
 
-    # TODO 2: buscar junta lo que devuelve cada hijo; contar suma lo que
-    # cuenta cada hijo.
+    def buscar(self, tipo, inicio, fin):
+        resutlado = []
+        for hijo in self.hijos:
+            resutlado = resutlado + hijo.buscar(tipo, inicio, fin)
+        return resutlado
 
-    # TODO 3 (compuesto): encontrar pregunta a cada hijo, en orden, y
-    # devuelve el primero que no sea None; si ninguno lo tiene, None.
+    def contar(self, tipo):
+        total = 0
+        for hijo in self.hijos:
+            total = total + hijo.contar(tipo)
+        return total
 
-    # TODO 4 (compuesto): rutas junta lo que devuelve cada hijo, pasandole
-    # ruta + self.nombre + " / ".
+    def encontrar(self, nombre):
+        for hijo in self.hijos:
+            encontrado = hijo.encontrar(nombre)
+            if encontrado is not None:
+                return encontrado
+        return None     
 
+    def ruta(self, tipo, inicio, fin, ruta):
+        resultado = []
+        for hijo in self.hijos:
+            resultado = resultado + hijo.rutas(tipo, inicio, fin, ruta)
+        return resultado
 
 def reservar_en(raiz, nombre, id_reserva, estudiante, inicio, fin):
     reservable = raiz.encontrar(nombre)
