@@ -37,5 +37,80 @@ Esta vez no hay codigo de partida. Corre las pruebas con:
     pytest test_ranking_ejercicio3.py
 """
 
+
 from actividad import Publicacion
-# TODO: escribe aqui la clase OrdenadorDeFeed.
+
+class OrdenadorDeFeed:
+    def __init__(self, interacciones, equipos_de):
+        self.interacciones = interacciones
+        self.equipos_de = equipos_de
+
+    def puntaje(self, publicacion, estudiante, ahora):
+        confirmaciones = self.interacciones.get(publicacion.id, 0)
+        if publicacion.autor in self.equipos_de.get(estudiante, []):
+            factor = 3
+        else:
+            factor = 1
+        horas = (ahora - publicacion.momento) // 60
+        return (confirmaciones + 1) * factor / (1 + horas)
+
+    def la_mejor(self, candidatas, estudiante, ahora):
+        mejor = candidatas[0]
+        mejor_puntaje = self.puntaje(mejor, estudiante, ahora)
+        for otra in candidatas[1:]:
+            puntaje = self.puntaje(otra, estudiante, ahora)
+            if puntaje > mejor_puntaje:
+                mejor = otra
+                mejor_puntaje = puntaje
+            elif puntaje == mejor_puntaje:
+                if otra.momento > mejor.momento:
+                    mejor = otra
+                elif otra.momento == mejor.momento and otra.id < mejor.id:
+                    mejor = otra
+        return mejor
+
+    def ordenar(self, publicaciones, estudiante, ahora, cantidad):
+        resultado = []
+        restantes = publicaciones[:]
+        while len(resultado) < cantidad and len(restantes) > 0:
+            autor_vetado = None
+            if len(resultado) >= 2 and resultado[-1].autor == resultado[-2].autor:
+                autor_vetado = resultado[-1].autor
+
+            permitidas = []
+            for publicacion in restantes:
+                if publicacion.autor != autor_vetado:
+                    permitidas.append(publicacion)
+            if len(permitidas) == 0:
+                permitidas = restantes
+
+            elegida = self.la_mejor(permitidas, estudiante, ahora)
+            resultado.append(elegida)
+            restantes.remove(elegida)
+        return resultado
+
+    def espacios_mas_reservados(self, reservas, ahora, cantidad):
+        conteos = {}
+        for reserva in reservas:
+            espacio = reserva[0]
+            momento = reserva[1]
+            if ahora - 10080 < momento <= ahora:
+                if espacio not in conteos:
+                    conteos[espacio] = 0
+                conteos[espacio] = conteos[espacio] + 1
+
+        pendientes = []
+        for espacio in conteos:
+            pendientes.append((espacio, conteos[espacio]))
+
+        resultado = []
+        while len(resultado) < cantidad and len(pendientes) > 0:
+            mejor = pendientes[0]
+            for otro in pendientes[1:]:
+                if otro[1] > mejor[1]:
+                    mejor = otro
+                elif otro[1] == mejor[1] and otro[0] < mejor[0]:
+                    mejor = otro
+            resultado.append(mejor)
+            pendientes.remove(mejor)
+        return resultado

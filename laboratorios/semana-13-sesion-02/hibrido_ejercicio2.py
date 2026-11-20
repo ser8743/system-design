@@ -44,18 +44,25 @@ class FeedHibrido:
             self.seguidos[estudiante].append(autor)
 
     def es_masivo(self, autor):
-        # TODO 1: True si el autor tiene mas de self.umbral seguidores.
-        raise NotImplementedError
+        return len(self.seguidores.get(autor, [])) > self.umbral
 
     def publicar(self, publicacion):
-        # TODO 2: si el autor es masivo, una escritura en "autor:<autor>"; si
-        # no, una escritura en "feed:<estudiante>" por cada seguidor.
-        raise NotImplementedError
+        autor = publicacion.autor
+        if self.es_masivo(autor):
+            self.almacen.agregar("autor:" + autor, publicacion)
+        else:
+            for estudiante in self.seguidores.get(autor, []):
+                self.almacen.agregar("feed:" + estudiante, publicacion)
 
     def leer(self, estudiante, cantidad=10):
-        # TODO 3: lee "feed:<estudiante>" y "autor:<autor>" de cada autor masivo
-        # que sigue, juntalas y devuelve las `cantidad` mas recientes.
-        raise NotImplementedError
+        juntas = []
+        for publicacion in self.almacen.leer("feed:" + estudiante):
+            juntas.append(publicacion)
+        for autor in self.seguidos.get(estudiante, []):
+            if self.es_masivo(autor):
+                for publicacion in self.almacen.leer("autor:" + autor):
+                    juntas.append(publicacion)
+        return mas_recientes(juntas, cantidad)
 
 
 def un_dia(feed):

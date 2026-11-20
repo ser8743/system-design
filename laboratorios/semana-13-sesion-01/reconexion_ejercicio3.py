@@ -35,4 +35,63 @@ Esta vez no hay codigo de partida. Corre las pruebas con:
 """
 
 from canales_ejercicio1 import Canales
-# TODO: escribe aqui la clase CanalConHistorial.
+
+class CanalConHistorial:
+    def __init__(self, historial=50):
+        self.historial = historial
+        self.conexiones_por_tema = {}
+        self.ultimos_numeros = {}
+        self.mensajes_por_tema = {}
+
+    def suscribir(self, tema, conexion):
+        if tema not in self.conexiones_por_tema:
+            self.conexiones_por_tema[tema] = []
+        if conexion not in self.conexiones_por_tema[tema]:
+            self.conexiones_por_tema[tema].append(conexion)
+
+    def desuscribir(self, tema, conexion):
+        if conexion in self.conexiones_por_tema.get(tema, []):
+            self.conexiones_por_tema[tema].remove(conexion)
+
+    def suscriptores(self, tema):
+        return len(self.conexiones_por_tema.get(tema, []))
+
+    def ultimo_numero(self, tema):
+        return self.ultimos_numeros.get(tema, 0)
+
+    def publicar(self, tema, mensaje):
+        numero = self.ultimo_numero(tema) + 1
+        self.ultimos_numeros[tema] = numero
+        texto = str(numero) + " " + mensaje
+
+        if tema not in self.mensajes_por_tema:
+            self.mensajes_por_tema[tema] = []
+        guardados = self.mensajes_por_tema[tema]
+        guardados.append((numero, texto))
+        while len(guardados) > self.historial:
+            guardados.pop(0)
+
+        for conexion in self.conexiones_por_tema.get(tema, []):
+            conexion.enviar(texto)
+        return numero
+
+    def reconectar(self, tema, conexion, ultimo_visto):
+        ultimo = self.ultimo_numero(tema)
+        if ultimo_visto > ultimo:
+            raise ValueError("numero desconocido")
+
+        guardados = self.mensajes_por_tema.get(tema, [])
+        perdidos = []
+        for numero, texto in guardados:
+            if numero > ultimo_visto:
+                perdidos.append(texto)
+
+        # Deberian ser ultimo - ultimo_visto mensajes; si hay menos,
+        # alguno ya se descarto del historial.
+        if len(perdidos) < ultimo - ultimo_visto:
+            conexion.enviar("recargar")
+        else:
+            for texto in perdidos:
+                conexion.enviar(texto)
+
+        self.suscribir(tema, conexion)
